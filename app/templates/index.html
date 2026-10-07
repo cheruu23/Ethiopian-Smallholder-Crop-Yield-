@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ethiopian Crop Yield &amp; Revenue Estimator</title>
+  <style>
+    :root { color-scheme: light; --green: #176b45; --ink: #17231d; --muted: #5e6b63; --line: #dce5df; --surface: #fff; --background: #f3f7f4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--background); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+    header { padding: 2.5rem max(1.25rem, calc((100% - 1040px) / 2)); color: white; background: linear-gradient(125deg, #155c3c, #27845a); }
+    header p { max-width: 680px; margin: .5rem 0 0; color: #e0f0e6; }
+    h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.15; }
+    main { width: min(1040px, calc(100% - 2rem)); margin: 1.5rem auto 3rem; }
+    .layout { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(0, 1.1fr); gap: 1.25rem; align-items: start; }
+    section, .card { padding: 1.35rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 3px 16px #1738230a; }
+    h2 { margin: 0 0 1rem; font-size: 1.2rem; }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+    label { display: grid; gap: .3rem; color: #344239; font-size: .9rem; font-weight: 600; }
+    input, select { width: 100%; min-height: 42px; padding: .5rem .6rem; border: 1px solid #cbd7cf; border-radius: 7px; background: white; color: var(--ink); font: inherit; }
+    input:focus, select:focus { outline: 2px solid #73b48c; outline-offset: 1px; }
+    button { width: 100%; min-height: 46px; margin-top: 1.1rem; border: 0; border-radius: 8px; background: var(--green); color: white; font: inherit; font-weight: 700; cursor: pointer; }
+    button:hover { background: #105537; }
+    .help, .muted { color: var(--muted); font-size: .9rem; }
+    .alert { margin: 0 0 1rem; padding: .8rem 1rem; border-radius: 8px; }
+    .error { border: 1px solid #f1c4bf; background: #fff4f2; color: #8c281d; }
+    .warning { border: 1px solid #f0dda2; background: #fff9e8; color: #705514; }
+    .alert ul { margin: .25rem 0 0; padding-left: 1.2rem; }
+    .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+    .metric { padding: .9rem; border-radius: 9px; background: #f3f8f4; }
+    .metric span { display: block; color: var(--muted); font-size: .83rem; }
+    .metric strong { display: block; margin-top: .15rem; color: var(--green); font-size: 1.25rem; }
+    .lookup { margin: 1rem 0; padding: .8rem; border-left: 3px solid #86b997; background: #f7faf7; }
+    .charts { display: grid; gap: .75rem; margin-top: 1rem; }
+    .charts img { display: block; width: 100%; height: auto; }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 420px) { .fields { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Crop Yield &amp; Revenue Estimator</h1>
+    <p>Estimate yield and revenue for a smallholder plot using its location, crop and farm details. Seasonal weather and crop prices are looked up automatically.</p>
+  </header>
+  <main>
+    <div class="layout">
+      <section>
+        <h2>Plot details</h2>
+        <form method="post" action="/">
+          <div class="fields">
+            <label>Region
+              <select name="region">
+                {% for item in regions %}<option value="{{ item }}" {% if form.get('region') == item %}selected{% endif %}>{{ item }}</option>{% endfor %}
+              </select>
+            </label>
+            <label>Crop
+              <select name="crop_type">
+                {% for item in crops %}<option value="{{ item }}" {% if form.get('crop_type') == item %}selected{% endif %}>{{ item|title }}</option>{% endfor %}
+              </select>
+            </label>
+            <label>Survey year
+              <select name="survey_year">
+                {% for item in years %}<option value="{{ item }}" {% if form.get('survey_year') == item|string %}selected{% endif %}>{{ item }}</option>{% endfor %}
+              </select>
+            </label>
+            <label>Planting month
+              <select name="planting_month">
+                {% for item in months %}<option value="{{ item }}" {% if form.get('planting_month') == item %}selected{% endif %}>{{ item }}</option>{% endfor %}
+              </select>
+            </label>
+            {% for key, (label, unit, lo, hi, zero_ok) in fields.items() %}
+            <label>{{ label }} ({{ unit }})
+              <input type="number" name="{{ key }}" value="{{ form.get(key, '') }}" min="{{ lo }}" max="{{ hi }}" step="any" required>
+            </label>
+            {% endfor %}
+            <label>Improved seed used
+              <select name="improved_seed_used">
+                <option value="1" {% if form.get('improved_seed_used') == '1' %}selected{% endif %}>Yes</option>
+                <option value="0" {% if form.get('improved_seed_used') == '0' %}selected{% endif %}>No</option>
+              </select>
+            </label>
+            <label>Pest or disease problem
+              <select name="pest_disease_flag">
+                <option value="0" {% if form.get('pest_disease_flag') == '0' %}selected{% endif %}>No</option>
+                <option value="1" {% if form.get('pest_disease_flag') == '1' %}selected{% endif %}>Yes</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit">Estimate yield and revenue</button>
+        </form>
+      </section>
+      <section aria-live="polite">
+        <h2>Your estimate</h2>
+        {% if result %}
+          {% if result.errors %}
+          <div class="alert error"><strong>Please review your details</strong><ul>{% for error in result.errors %}<li>{{ error }}</li>{% endfor %}</ul></div>
+          {% endif %}
+          {% if result.warnings %}
+          <div class="alert warning"><strong>Prediction notes</strong><ul>{% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></div>
+          {% endif %}
+          {% if result.ok %}
+          <div class="metrics">
+            <div class="metric"><span>Predicted yield</span><strong>{{ "%.2f"|format(result.yield_t_ha) }} t/ha</strong></div>
+            <div class="metric"><span>Estimated revenue</span><strong>{{ "{:,.0f}".format(result.revenue_birr) }} birr</strong></div>
+            <div class="metric"><span>Revenue range (± model RMSE)</span><strong>{{ "{:,.0f}".format(result.revenue_low) }}–{{ "{:,.0f}".format(result.revenue_high) }} birr</strong></div>
+            <div class="metric"><span>Typical model error</span><strong>{{ "%.2f"|format(result.rmse) }} t/ha</strong></div>
+          </div>
+          <p class="lookup">{{ result.lookup_line }}</p>
+          <p class="muted">This estimate is a model output, not a guarantee of farm performance or market price.</p>
+          <div class="charts">
+            <img src="{{ result.chart_compare }}" alt="Comparison of predicted yield with regional and crop averages">
+            <img src="{{ result.chart_whatif }}" alt="What-if chart comparing yield by fertilizer use and seed type">
+          </div>
+          {% else %}
+          <p class="muted">Correct the details to see an estimate.</p>
+          {% endif %}
+        {% else %}
+          <p class="muted">Submit the plot details to see the predicted yield, revenue range, and comparison charts.</p>
+        {% endif %}
+      </section>
+    </div>
+  </main>
+</body>
+</html>

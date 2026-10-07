@@ -1,0 +1,28 @@
+{
+  "chosen_config": "tuned",
+  "cv_rmse_mean": 0.49448187486920575,
+  "cv_rmse_sd": 0.008700077792039247,
+  "training_rows": 15090,
+  "target": "yield_tons_per_ha",
+  "features": [
+    "region",
+    "crop_type",
+    "survey_year",
+    "altitude_m",
+    "farm_size_ha",
+    "fertilizer_kg_per_ha",
+    "improved_seed_used",
+    "pest_disease_flag",
+    "soil_quality_index",
+    "labor_days_per_ha",
+    "distance_to_market_km",
+    "season_mean_temp_c",
+    "season_rain_total_mm",
+    "season_extreme_heat_days",
+    "season_temp_dev_c",
+    "planting_month_num",
+    "is_meher_planting",
+    "fert_x_improved_seed",
+    "aridity_ratio"
+  ]
+}

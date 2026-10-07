@@ -1,0 +1,34 @@
+column,type,source_file,description,derivation
+plot_id,str,plot survey,Unique plot identifier,Original
+region,str,plot survey,Administrative region (standardized),Cleaned + mapped
+crop_type,str,plot survey,Crop grown (standardized),Cleaned + mapped
+survey_year,int64,plot survey,Survey year 2021-2024,Original
+planting_month,str,plot survey,Planting month name,Standardized lowercase
+altitude_m,float64,plot survey,Elevation (m),Original
+rainfall_mm_season,float64,plot survey,Farmer-reported seasonal rainfall (mm),Original
+farm_size_ha,float64,plot survey,Farm size (ha),Original (capped)
+fertilizer_kg_per_ha,float64,plot survey,Fertilizer rate (kg/ha),Original (capped)
+improved_seed_used,int64,plot survey,Improved seed used (0/1),Original
+pest_disease_flag,float64,plot survey,Pest/disease observed (0/1),Original (-999→NaN→imputed)
+soil_quality_index,float64,plot survey,Soil quality score 0-1,Original
+labor_days_per_ha,float64,plot survey,Labor days per hectare,Original
+distance_to_market_km,float64,plot survey,Distance to market (km),Original
+planting_month_num,int64,plot survey,Planting month as 1-12,Mapped from name
+season_temp_mean,float64,regional_weather,Mean temperature over growing season (°C),mean of monthly avg_temp_c
+season_temp_min,float64,regional_weather,Min monthly temperature in season (°C),min of monthly avg_temp_c
+season_temp_max,float64,regional_weather,Max monthly temperature in season (°C),max of monthly avg_temp_c
+season_rain_total,float64,regional_weather,Total rainfall over growing season (mm),sum of monthly_rainfall_mm
+season_rain_mean,float64,regional_weather,Mean monthly rainfall in season (mm),mean of monthly_rainfall_mm
+season_heat_days,float64,regional_weather,Total extreme-heat days in season,sum of extreme_heat_days
+weather_months_available,int64,regional_weather,Number of months with weather data in window,count of matching weather rows
+fertilizer_per_ha,float64,engineered,Fertilizer intensity,fertilizer_kg_per_ha / farm_size_ha
+labor_per_ha,float64,engineered,Labor intensity,labor_days_per_ha / farm_size_ha
+market_distance_per_ha,float64,engineered,Market distance intensity,distance_to_market_km / farm_size_ha
+rainfall_difference,float64,engineered,Reported minus station rainfall,rainfall_mm_season - season_rain_total
+rainfall_ratio,float64,engineered,Reported / station rainfall,rainfall_mm_season / season_rain_total
+rain_temp_interaction,float64,engineered,Rain × temperature interaction,season_rain_total * season_temp_mean
+heat_temp_interaction,float64,engineered,Heat days × temperature,season_heat_days * season_temp_mean
+heat_days_per_month,float64,engineered,Heat intensity,season_heat_days / weather_months_available
+planting_month_sin,float64,engineered,Cyclic encoding of planting month,sin(2π * planting_month_num / 12)
+planting_month_cos,float64,engineered,Cyclic encoding of planting month,cos(2π * planting_month_num / 12)
+yield_tons_per_ha,float64,plot survey,TARGET — yield in tons per hectare,Original (train only)

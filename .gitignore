@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.env
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+.pytest_cache/
+.coverage
+Thumbs.db
+Desktop.ini
