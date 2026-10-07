@@ -237,6 +237,61 @@ class Predictor:
         return self._png(fig)
 
     # ------------------------------------------------------------------------- everything together
+    def evaluate_csv(self, csv_data):
+        """Run batch evaluation for a CSV containing one plot per row."""
+        if isinstance(csv_data, (bytes, bytearray)):
+            text = csv_data.decode("utf-8-sig")
+            df = pd.read_csv(io.StringIO(text))
+        else:
+            df = csv_data.copy()
+
+        required = ["region", "crop_type", "survey_year", "planting_month", "altitude_m", "farm_size_ha",
+                    "fertilizer_kg_per_ha", "soil_quality_index", "labor_days_per_ha", "distance_to_market_km",
+                    "improved_seed_used", "pest_disease_flag"]
+        missing = [c for c in required if c not in df.columns]
+        if missing:
+            return {"ok": False, "errors": [f"CSV is missing required columns: {', '.join(missing)}."], "warnings": []}
+
+        rows = []
+        failures = []
+        for idx, row in df.iterrows():
+            record = {k: ("" if pd.isna(row[k]) else str(row[k])) for k in required}
+            clean, errors, warnings = self.validate(record)
+            if errors:
+                failures.append({"row": int(idx) + 2, "errors": errors, "warnings": warnings})
+                continue
+            season_row, info = self.lookup(clean)
+            pred = float(self.predict_yield(self.make_rows(clean, season_row))[0])
+            revenue = pred * clean["farm_size_ha"] * 10 * info["price"]
+            rows.append({
+                "row": int(idx) + 2,
+                "region": clean["region"],
+                "crop_type": clean["crop_type"],
+                "survey_year": clean["survey_year"],
+                "yield_t_ha": pred,
+                "revenue_birr": revenue,
+            })
+
+        if not rows:
+            return {"ok": False, "errors": ["No valid rows were found in the uploaded CSV."], "warnings": [], "failed_rows": len(failures), "failures": failures}
+
+        avg_yield = float(np.mean([r["yield_t_ha"] for r in rows]))
+        avg_revenue = float(np.mean([r["revenue_birr"] for r in rows]))
+        summary = {
+            "ok": True,
+            "errors": [],
+            "warnings": [],
+            "rows_processed": len(df),
+            "valid_rows": len(rows),
+            "failed_rows": len(failures),
+            "avg_yield_t_ha": avg_yield,
+            "avg_revenue_birr": avg_revenue,
+            "predictions": rows,
+            "failures": failures,
+            "summary_line": f"Evaluated {len(rows)} valid plots from {len(df)} rows; average predicted yield {avg_yield:.2f} t/ha and average revenue {avg_revenue:,.0f} birr.",
+        }
+        return summary
+
     def run(self, form):
         v, errors, warnings = self.validate(form)
         if errors:

@@ -46,7 +46,7 @@
     <div class="layout">
       <section>
         <h2>Plot details</h2>
-        <form method="post" action="/">
+        <form method="post" action="/" enctype="multipart/form-data">
           <div class="fields">
             <label>Region
               <select name="region">
@@ -88,6 +88,15 @@
           </div>
           <button type="submit">Estimate yield and revenue</button>
         </form>
+
+        <div class="lookup" style="margin-top: 1.2rem;">
+          <h3 style="margin: 0 0 .5rem; font-size: 1rem;">Upload CSV for evaluation</h3>
+          <p class="muted" style="margin: 0 0 .75rem;">Use columns: region, crop_type, survey_year, planting_month, altitude_m, farm_size_ha, fertilizer_kg_per_ha, soil_quality_index, labor_days_per_ha, distance_to_market_km, improved_seed_used, pest_disease_flag</p>
+          <form method="post" action="/" enctype="multipart/form-data" style="margin-top: .5rem;">
+            <input type="file" name="csv_file" accept=".csv,text/csv" style="width: 100%; margin-bottom: .8rem;">
+            <button type="submit">Upload and evaluate CSV</button>
+          </form>
+        </div>
       </section>
       <section aria-live="polite">
         <h2>Your estimate</h2>
@@ -99,18 +108,54 @@
           <div class="alert warning"><strong>Prediction notes</strong><ul>{% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></div>
           {% endif %}
           {% if result.ok %}
-          <div class="metrics">
-            <div class="metric"><span>Predicted yield</span><strong>{{ "%.2f"|format(result.yield_t_ha) }} t/ha</strong></div>
-            <div class="metric"><span>Estimated revenue</span><strong>{{ "{:,.0f}".format(result.revenue_birr) }} birr</strong></div>
-            <div class="metric"><span>Revenue range (± model RMSE)</span><strong>{{ "{:,.0f}".format(result.revenue_low) }}–{{ "{:,.0f}".format(result.revenue_high) }} birr</strong></div>
-            <div class="metric"><span>Typical model error</span><strong>{{ "%.2f"|format(result.rmse) }} t/ha</strong></div>
-          </div>
-          <p class="lookup">{{ result.lookup_line }}</p>
-          <p class="muted">This estimate is a model output, not a guarantee of farm performance or market price.</p>
-          <div class="charts">
-            <img src="{{ result.chart_compare }}" alt="Comparison of predicted yield with regional and crop averages">
-            <img src="{{ result.chart_whatif }}" alt="What-if chart comparing yield by fertilizer use and seed type">
-          </div>
+            {% if result.summary_line %}
+            <div class="metrics">
+              <div class="metric"><span>Valid plots</span><strong>{{ result.valid_rows }}</strong></div>
+              <div class="metric"><span>Average yield</span><strong>{{ "%.2f"|format(result.avg_yield_t_ha) }} t/ha</strong></div>
+              <div class="metric"><span>Average revenue</span><strong>{{ "{:,.0f}".format(result.avg_revenue_birr) }} birr</strong></div>
+              <div class="metric"><span>Rows processed</span><strong>{{ result.rows_processed }}</strong></div>
+            </div>
+            <p class="lookup">{{ result.summary_line }}</p>
+            {% if result.predictions %}
+            <div style="margin-top:1rem; overflow:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left; padding:.5rem; border-bottom:1px solid #dce5df;">Row</th>
+                    <th style="text-align:left; padding:.5rem; border-bottom:1px solid #dce5df;">Region</th>
+                    <th style="text-align:left; padding:.5rem; border-bottom:1px solid #dce5df;">Crop</th>
+                    <th style="text-align:left; padding:.5rem; border-bottom:1px solid #dce5df;">Yield</th>
+                    <th style="text-align:left; padding:.5rem; border-bottom:1px solid #dce5df;">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in result.predictions %}
+                  <tr>
+                    <td style="padding:.5rem; border-bottom:1px solid #edf1ee;">{{ row.row }}</td>
+                    <td style="padding:.5rem; border-bottom:1px solid #edf1ee;">{{ row.region }}</td>
+                    <td style="padding:.5rem; border-bottom:1px solid #edf1ee;">{{ row.crop_type }}</td>
+                    <td style="padding:.5rem; border-bottom:1px solid #edf1ee;">{{ "%.2f"|format(row.yield_t_ha) }} t/ha</td>
+                    <td style="padding:.5rem; border-bottom:1px solid #edf1ee;">{{ "{:,.0f}".format(row.revenue_birr) }} birr</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="metrics">
+              <div class="metric"><span>Predicted yield</span><strong>{{ "%.2f"|format(result.yield_t_ha) }} t/ha</strong></div>
+              <div class="metric"><span>Estimated revenue</span><strong>{{ "{:,.0f}".format(result.revenue_birr) }} birr</strong></div>
+              <div class="metric"><span>Revenue range (± model RMSE)</span><strong>{{ "{:,.0f}".format(result.revenue_low) }}–{{ "{:,.0f}".format(result.revenue_high) }} birr</strong></div>
+              <div class="metric"><span>Typical model error</span><strong>{{ "%.2f"|format(result.rmse) }} t/ha</strong></div>
+            </div>
+            <p class="lookup">{{ result.lookup_line }}</p>
+            <p class="muted">This estimate is a model output, not a guarantee of farm performance or market price.</p>
+            <div class="charts">
+              <img src="{{ result.chart_compare }}" alt="Comparison of predicted yield with regional and crop averages">
+              <img src="{{ result.chart_whatif }}" alt="What-if chart comparing yield by fertilizer use and seed type">
+            </div>
+            {% endif %}
           {% else %}
           <p class="muted">Correct the details to see an estimate.</p>
           {% endif %}

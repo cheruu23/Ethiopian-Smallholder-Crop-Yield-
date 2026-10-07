@@ -1,8 +1,8 @@
 """Smoke tests for the Flask routes; run with python app/test_app.py."""
 import unittest
 
-from app import app
-from predictor import DEFAULTS
+from app.app import app
+from app.predictor import DEFAULTS
 
 
 class AppSmokeTests(unittest.TestCase):

@@ -3,7 +3,10 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
-from predictor import CROPS, DEFAULTS, FIELDS, PLANTING_MONTHS, REGIONS, YEARS, Predictor
+try:
+    from .predictor import CROPS, DEFAULTS, FIELDS, PLANTING_MONTHS, REGIONS, YEARS, Predictor
+except ImportError:  # allow running app.py directly or as a module from the project root
+    from predictor import CROPS, DEFAULTS, FIELDS, PLANTING_MONTHS, REGIONS, YEARS, Predictor
 
 app = Flask(__name__)
 predictor = Predictor()          # loads the bundled tables + model once at start-up
@@ -18,13 +21,21 @@ def page(form, result=None):
 def index():
     if request.method == "POST":
         form = request.form.to_dict()
+        csv_file = request.files.get("csv_file")
+        upload_result = None
         try:
-            result = predictor.run(form)
+            if csv_file and csv_file.filename:
+                if not csv_file.filename.lower().endswith(".csv"):
+                    upload_result = {"ok": False, "errors": ["Please upload a CSV file."], "warnings": []}
+                else:
+                    upload_result = predictor.evaluate_csv(csv_file.read())
+            else:
+                result = predictor.run(form)
+                return page(form, result)
         except Exception:          # last line of defence: never show a stack trace to the user
             app.logger.exception("prediction failed")
-            result = {"ok": False, "warnings": [], "errors": ["Sorry, something went wrong with this combination of inputs. "
-                                                              "Please check the values and try again."]}
-        return page(form, result)
+            upload_result = {"ok": False, "warnings": [], "errors": ["Sorry, something went wrong with this combination of inputs. Please check the values and try again."]}
+        return page(form, upload_result)
     return page(DEFAULTS)
 
 
