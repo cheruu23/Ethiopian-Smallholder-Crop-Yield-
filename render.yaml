@@ -1,10 +1,11 @@
 services:
   - type: web
     name: ethiopian-smallholder-crop-yield
+    rootDir: app
     runtime: python
     plan: free
-    buildCommand: pip install -r app/requirements.txt
-    startCommand: gunicorn --chdir app --workers 1 --threads 4 --timeout 120 app:app
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --workers 1 --threads 4 --timeout 120 app:app
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
