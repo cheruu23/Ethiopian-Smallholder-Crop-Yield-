@@ -24,11 +24,10 @@ tables in `data/raw/`, then writes the app's model and lookup tables to
 
 The included `render.yaml` is a Render Blueprint. Push this repository to
 GitHub, then in Render choose **New > Blueprint** and select the repository.
-The service runs from the repository root, installs `app/requirements.txt`,
-starts the Flask app with Gunicorn, and checks `/health`. If you already have
-a Render service, sync the Blueprint changes and make sure its Root Directory
-is blank (repository root), Build Command is `pip install -r
-app/requirements.txt`, and Start Command is
-`gunicorn --chdir app --workers 1 --threads 4 --timeout 120 app:app`.
+The service uses `app/` as its Root Directory, installs `requirements.txt`,
+starts the Flask app with Gunicorn, and checks `/health`. For an existing
+service, sync the Blueprint or set Root Directory to `app`, Build Command to
+`pip install -r requirements.txt`, and Start Command to
+`gunicorn --workers 1 --threads 4 --timeout 120 app:app`.
 
 The deployment files and app usage are documented in [`app/README.md`](app/README.md).
